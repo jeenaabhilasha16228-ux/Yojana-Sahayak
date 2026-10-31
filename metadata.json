@@ -1,0 +1,6 @@
+{
+  "name": "Yojana Sahayak",
+  "description": "Bilingual AI assistant with RAG to help Indian citizens explore government schemes, verify eligibility, check required documents, and view verified official source citations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
