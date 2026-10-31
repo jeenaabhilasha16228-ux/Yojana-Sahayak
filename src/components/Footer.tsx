@@ -1,13 +1,14 @@
 import React from 'react';
-import { ShieldCheck, ExternalLink } from 'lucide-react';
+import { ShieldCheck, ExternalLink, Lock } from 'lucide-react';
 import { Language } from '../types';
 
 interface FooterProps {
   language: Language;
   onNavigateTab: (tab: string) => void;
+  onOpenPrivacyPolicy?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ language, onNavigateTab }) => {
+export const Footer: React.FC<FooterProps> = ({ language, onNavigateTab, onOpenPrivacyPolicy }) => {
   return (
     <footer className="bg-[#04060a] text-slate-400 border-t border-white/[0.08] text-xs">
       {/* Decorative tricolor top accent */}
@@ -41,6 +42,11 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigateTab }) => {
               <li>
                 <button onClick={() => onNavigateTab('home')} className="hover:text-white transition-colors">
                   {language === 'hi' ? 'होम (Home)' : 'Home'}
+                </button>
+              </li>
+              <li>
+                <button onClick={() => onNavigateTab('recommendations')} className="hover:text-white transition-colors">
+                  {language === 'hi' ? 'अनुशंसित योजनाएं (Recommended)' : 'Recommended Schemes'}
                 </button>
               </li>
               <li>
@@ -116,6 +122,15 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigateTab }) => {
                 ? '“योजना सहायक उपलब्ध आधिकारिक सरकारी दस्तावेजों के आधार पर केवल सूचनात्मक मार्गदर्शन प्रदान करता है। अंतिम पात्रता और आवेदन संबंधी आवश्यकताओं का सत्यापन संबंधित आधिकारिक प्राधिकरण से अवश्य करें।”'
                 : '“Yojana Sahayak provides informational guidance based on available government documents. Users should verify final eligibility and application requirements with the relevant official government authority.”'}
             </p>
+            {onOpenPrivacyPolicy && (
+              <button
+                onClick={onOpenPrivacyPolicy}
+                className="mt-2 inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 font-semibold underline underline-offset-2"
+              >
+                <Lock className="w-3 h-3" />
+                <span>{language === 'hi' ? 'गोपनीयता और डेटा सुरक्षा नीति' : 'Privacy & Data Protection Policy'}</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -128,6 +143,14 @@ export const Footer: React.FC<FooterProps> = ({ language, onNavigateTab }) => {
             <button onClick={() => onNavigateTab('about')} className="hover:text-slate-300">
               {language === 'hi' ? 'वास्तुकला' : 'Architecture'}
             </button>
+            {onOpenPrivacyPolicy && (
+              <>
+                <span className="text-slate-700">•</span>
+                <button onClick={onOpenPrivacyPolicy} className="hover:text-slate-300">
+                  {language === 'hi' ? 'गोपनीयता नीति' : 'Privacy Policy'}
+                </button>
+              </>
+            )}
             <span className="text-slate-700">•</span>
             <span>Vercel Deployable</span>
           </div>

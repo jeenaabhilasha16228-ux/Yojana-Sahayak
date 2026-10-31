@@ -9,15 +9,21 @@ import {
   Sparkles,
   Menu,
   X,
-  ArrowRight
+  ArrowRight,
+  User,
+  LogOut,
+  LayoutDashboard
 } from 'lucide-react';
-import { Language } from '../types';
+import { Language, UserProfile } from '../types';
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
+  user: UserProfile | null;
+  onOpenAuthModal: () => void;
+  onLogout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,11 +31,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentTab,
   language,
   setLanguage,
+  user,
+  onOpenAuthModal,
+  onLogout,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
     { id: 'home', labelEn: 'Home', labelHi: 'होम' },
+    { id: 'recommendations', labelEn: 'Recommended', labelHi: 'सिफारिशें', isNew: true },
     { id: 'chat', labelEn: 'Assistant', labelHi: 'एआई सहायक' },
     { id: 'schemes', labelEn: 'Schemes', labelHi: 'योजनाएं' },
     { id: 'eligibility', labelEn: 'Eligibility', labelHi: 'पात्रता जांच' },
@@ -91,27 +101,32 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-1">
+          <nav className="hidden xl:flex items-center space-x-1">
             {navItems.map((item) => {
               const isActive = currentTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setCurrentTab(item.id)}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
+                  className={`relative px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
                     isActive
                       ? 'bg-white/[0.09] text-white border border-white/[0.15] shadow-xs'
                       : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
-                  {language === 'hi' ? item.labelHi : item.labelEn}
+                  <span className="flex items-center gap-1.5">
+                    {language === 'hi' ? item.labelHi : item.labelEn}
+                    {item.isNew && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    )}
+                  </span>
                 </button>
               );
             })}
           </nav>
 
-          {/* Right Controls: Language Selector & CTA */}
-          <div className="flex items-center gap-3">
+          {/* Right Controls: Language Selector, Auth & CTA */}
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Bilingual Switcher */}
             <div className="flex items-center bg-white/[0.05] p-1 rounded-xl border border-white/[0.08]">
               <button
@@ -136,10 +151,45 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </div>
 
-            {/* Cinematic CTA */}
+            {/* User Account / Auth Button */}
+            {user ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentTab('dashboard')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                    currentTab === 'dashboard'
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-md'
+                      : 'bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 border-white/[0.1]'
+                  }`}
+                  title={user.name}
+                >
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-slate-950 font-black text-[10px] flex items-center justify-center">
+                    {user.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline-block max-w-[90px] truncate">{user.name.split(' ')[0]}</span>
+                </button>
+                <button
+                  onClick={onLogout}
+                  className="p-2 rounded-xl text-slate-400 hover:text-rose-300 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
+                  title={language === 'hi' ? 'लॉगआउट' : 'Log Out'}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-slate-200 border border-white/[0.1] text-xs font-bold transition-all"
+              >
+                <User className="w-3.5 h-3.5 text-blue-400" />
+                <span>{language === 'hi' ? 'साइन इन' : 'Sign In'}</span>
+              </button>
+            )}
+
+            {/* Cinematic CTA Button */}
             <button
               onClick={() => setCurrentTab('chat')}
-              className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all border border-blue-400/30"
+              className="hidden lg:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all border border-blue-400/30"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>{language === 'hi' ? 'सवाल पूछें →' : 'Ask Assistant →'}</span>
@@ -148,7 +198,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-white/[0.08]"
+              className="xl:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-white/[0.08]"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -159,7 +209,41 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-white/[0.08] bg-[#06080e]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2 shadow-2xl">
+        <div className="xl:hidden border-t border-white/[0.08] bg-[#06080e]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2 shadow-2xl">
+          {user ? (
+            <div className="p-3 mb-2 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                  {user.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white">{user.name}</p>
+                  <p className="text-[10px] text-slate-400">{user.email}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setCurrentTab('dashboard');
+                  setMobileMenuOpen(false);
+                }}
+                className="text-xs text-blue-400 font-bold underline"
+              >
+                {language === 'hi' ? 'डैशबोर्ड' : 'Dashboard'}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                onOpenAuthModal();
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/[0.06] text-white font-bold text-xs border border-white/10 mb-2"
+            >
+              <User className="w-4 h-4 text-blue-400" />
+              <span>{language === 'hi' ? 'साइन इन / खाता बनाएं' : 'Sign In / Create Account'}</span>
+            </button>
+          )}
+
           {navItems.map((item) => {
             const isActive = currentTab === item.id;
             return (
@@ -169,13 +253,20 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setCurrentTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
+                className={`flex items-center justify-between w-full px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                   isActive
                     ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
                     : 'text-slate-300 hover:text-white hover:bg-white/[0.05]'
                 }`}
               >
-                <span>{language === 'hi' ? item.labelHi : item.labelEn}</span>
+                <span className="flex items-center gap-2">
+                  {language === 'hi' ? item.labelHi : item.labelEn}
+                  {item.isNew && (
+                    <span className="px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
+                      NEW
+                    </span>
+                  )}
+                </span>
                 <ArrowRight className="w-4 h-4 text-slate-500" />
               </button>
             );
@@ -187,7 +278,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 setCurrentTab('chat');
                 setMobileMenuOpen(false);
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-md"
             >
               <Sparkles className="w-4 h-4 text-amber-300" />
               <span>{language === 'hi' ? 'योजना सहायक से पूछें →' : 'Ask Yojana Sahayak →'}</span>

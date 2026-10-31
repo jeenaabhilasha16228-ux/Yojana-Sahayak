@@ -65,6 +65,7 @@ export interface Scheme {
     purposeHindi: string;
     sourcePage: number;
     sourceSection: string;
+    categoryTag?: DocumentCategory;
   }>;
   
   // Benefits breakdown
@@ -153,5 +154,78 @@ export interface EligibilityResult {
   sourceDocument: string;
   sourceSection: string;
   sourcePage: number;
+  officialUrl: string;
+}
+
+// User Authentication & Profile Types
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  age?: number;
+  gender?: 'male' | 'female' | 'other';
+  state?: string;
+  district?: string;
+  occupation?: string;
+  annualIncome?: number;
+  isStudent?: boolean;
+  isFarmer?: boolean;
+  isArtisan?: boolean;
+  hasAgriLand?: boolean;
+  hasGirlChildUnder10?: boolean;
+  paysIncomeTax?: boolean;
+  isGovtEmployee?: boolean;
+  socialCategory?: 'General' | 'OBC' | 'SC' | 'ST' | 'EWS';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type DocumentCategory = 
+  | 'aadhaar'
+  | 'income_certificate'
+  | 'residence_domicile'
+  | 'caste_certificate'
+  | 'education_certificate'
+  | 'land_records'
+  | 'bank_passbook'
+  | 'disability_certificate'
+  | 'other';
+
+export interface ExtractedDocumentInfo {
+  documentType: string;
+  confidence: 'high' | 'medium' | 'low';
+  detectedState?: string;
+  detectedIncome?: number;
+  detectedAge?: number;
+  detectedCategory?: string;
+  isStudentDetected?: boolean;
+  isFarmerDetected?: boolean;
+  rawSummary?: string;
+}
+
+export interface UserDocument {
+  id: string;
+  userId: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  category: DocumentCategory;
+  uploadedAt: string;
+  extractedData: ExtractedDocumentInfo;
+  verificationStatus: 'verified' | 'needs_verification' | 'unverified';
+  storageUrl?: string;
+}
+
+export interface SchemeRecommendation {
+  scheme: Scheme;
+  matchLevel: 'High' | 'Moderate' | 'More Info Needed';
+  matchScore: number; // 0 to 100
+  matchReasons: string[];
+  pendingRequirements: string[];
+  availableDocuments: string[];
+  missingDocuments: string[];
+  officialSourceTitle: string;
+  officialSourceSection: string;
+  officialSourcePage: number;
   officialUrl: string;
 }

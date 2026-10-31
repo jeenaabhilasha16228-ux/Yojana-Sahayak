@@ -131,12 +131,20 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </button>
 
             <button
+              onClick={() => onNavigateTab('recommendations')}
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 font-bold text-base border border-emerald-500/30 hover:border-emerald-400 backdrop-blur-md transition-all flex items-center justify-center gap-2"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-400" />
+              <span>{language === 'hi' ? 'मेरे लिए अनुशंसित योजनाएं' : 'Recommended For You'}</span>
+            </button>
+
+            <button
               onClick={() => {
                 const el = document.getElementById('schemes-section');
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
                 else onNavigateTab('schemes');
               }}
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-white font-bold text-base border border-white/[0.12] hover:border-white/[0.25] backdrop-blur-md transition-all flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] text-white font-bold text-base border border-white/[0.12] hover:border-white/[0.25] backdrop-blur-md transition-all flex items-center justify-center gap-2"
             >
               <Layers className="w-4 h-4 text-slate-400" />
               <span>{language === 'hi' ? 'योजनाएं देखें' : 'Explore Schemes'}</span>
