@@ -1,17 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   ExternalLink, 
-  Building, 
-  CheckCircle, 
   FileText, 
-  HelpCircle, 
   BookOpen, 
   MessageSquare, 
-  Award, 
   CheckSquare, 
   Layers,
-  ArrowRight
+  ArrowRight,
+  ShieldCheck
 } from 'lucide-react';
 import { Language, Scheme, SourceCitation } from '../types';
 
@@ -30,42 +27,42 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
   onAskAI,
   onOpenSourceModal,
 }) => {
-  const [activeTab, setActiveTab] = React.useState<'overview' | 'eligibility' | 'documents' | 'benefits' | 'apply'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'eligibility' | 'documents' | 'benefits' | 'apply'>('overview');
 
   if (!scheme) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-150">
       <div 
-        className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
+        className="bg-[#0b0e17] rounded-3xl shadow-2xl max-w-3xl w-full border border-white/[0.12] overflow-hidden flex flex-col max-h-[92vh] text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Modal Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-900 to-indigo-950 text-white flex items-center justify-between">
+        {/* Header */}
+        <div className="px-6 py-5 bg-white/[0.03] border-b border-white/[0.08] flex items-center justify-between">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 border border-blue-400/30">
+              <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                 {scheme.category.replace('_', ' ')}
               </span>
-              <span className="text-xs text-slate-300">
+              <span className="text-xs text-slate-400">
                 {language === 'hi' ? scheme.ministryHindi : scheme.ministry}
               </span>
             </div>
-            <h2 className="text-xl font-extrabold text-white">
+            <h2 className="text-xl font-black text-white">
               {language === 'hi' ? scheme.hindiName : scheme.name}
             </h2>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-6 gap-2 overflow-x-auto text-xs font-semibold">
+        {/* Navigation Tabs */}
+        <div className="flex border-b border-white/[0.08] bg-white/[0.01] px-6 gap-2 overflow-x-auto text-xs font-semibold">
           {[
             { id: 'overview', labelEn: 'Overview', labelHi: 'विवरण' },
             { id: 'eligibility', labelEn: 'Eligibility', labelHi: 'पात्रता' },
@@ -78,8 +75,8 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
               onClick={() => setActiveTab(tab.id as any)}
               className={`py-3 px-3 border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab.id
-                  ? 'border-blue-700 text-blue-800 bg-white font-bold'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
+                  ? 'border-blue-500 text-white font-bold bg-white/[0.04]'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
               {language === 'hi' ? tab.labelHi : tab.labelEn}
@@ -87,41 +84,40 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
           ))}
         </div>
 
-        {/* Modal Body Content */}
+        {/* Content */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1 text-sm">
           {activeTab === 'overview' && (
             <div className="space-y-5">
               <div>
                 <h3 className="text-xs uppercase font-bold tracking-wider text-slate-400 mb-1">
-                  {language === 'hi' ? 'योजना का उद्देश्य' : 'Objective'}
+                  {language === 'hi' ? 'उद्देश्य' : 'Objective'}
                 </h3>
-                <p className="text-slate-700 text-base leading-relaxed">
+                <p className="text-slate-300 text-base leading-relaxed">
                   {language === 'hi' ? scheme.shortDescriptionHindi : scheme.shortDescription}
                 </p>
               </div>
 
-              {/* Benefit Box */}
-              <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
-                <span className="text-xs uppercase font-bold tracking-wider text-amber-800 block">
+              <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08]">
+                <span className="text-xs uppercase font-bold tracking-wider text-amber-400 block">
                   {language === 'hi' ? 'मुख्य वित्तीय या सामाजिक लाभ' : 'Key Financial or Social Benefit'}
                 </span>
-                <p className="text-base font-bold text-amber-950 mt-1">
+                <p className="text-base font-bold text-white mt-1">
                   {language === 'hi' ? scheme.benefitHighlightHindi : scheme.benefitHighlight}
                 </p>
               </div>
 
-              {/* Official Guidelines Citation Box */}
-              <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+              {/* Official guidelines citation box */}
+              <div className="p-4 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4 text-blue-700" />
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <BookOpen className="w-4 h-4 text-blue-400" />
                     {language === 'hi' ? 'आधिकारिक दिशानिर्देश दस्तावेज' : 'Official Grounded Guidelines'}
                   </span>
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
                     Verified
                   </span>
                 </div>
-                <p className="text-xs text-slate-600 font-mono">
+                <p className="text-xs text-slate-400 font-mono">
                   {scheme.officialDocTitle}
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
@@ -138,9 +134,9 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
                         excerpt: chunk.content,
                         officialUrl: scheme.officialPortal
                       })}
-                      className="inline-flex items-center gap-1.5 text-xs bg-white hover:bg-blue-50 text-blue-700 border border-slate-200 px-2.5 py-1 rounded-md transition-colors font-medium shadow-2xs"
+                      className="inline-flex items-center gap-1.5 text-xs bg-white/[0.04] hover:bg-blue-600/20 text-slate-200 hover:text-white border border-white/[0.08] px-2.5 py-1 rounded-xl transition-colors font-medium"
                     >
-                      <FileText className="w-3 h-3 text-blue-600" />
+                      <FileText className="w-3 h-3 text-blue-400" />
                       <span>{chunk.section} (Page {chunk.pageNumber})</span>
                     </button>
                   ))}
@@ -151,24 +147,24 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
 
           {activeTab === 'eligibility' && (
             <div className="space-y-5">
-              <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200">
-                <h3 className="text-xs uppercase font-bold tracking-wider text-blue-800 mb-1">
+              <div className="p-4 rounded-2xl bg-blue-950/30 border border-blue-500/20 space-y-2">
+                <h3 className="text-xs uppercase font-bold tracking-wider text-blue-400">
                   {language === 'hi' ? 'पात्रता सारांश' : 'Eligibility Summary'}
                 </h3>
-                <p className="text-slate-800 text-sm leading-relaxed">
+                <p className="text-slate-200 text-sm leading-relaxed">
                   {language === 'hi' ? scheme.eligibility.summaryHindi : scheme.eligibility.summary}
                 </p>
-                <div className="mt-3 text-xs text-blue-700 font-medium">
+                <div className="text-xs text-blue-400 font-medium pt-1">
                   {language === 'hi' ? 'स्रोत:' : 'Source:'} {scheme.officialDocTitle} — {scheme.eligibility.sourceSection}, Page {scheme.eligibility.sourcePage}
                 </div>
               </div>
 
               {scheme.eligibility.excludedOccupations && scheme.eligibility.excludedOccupations.length > 0 && (
-                <div className="p-4 rounded-xl bg-rose-50/70 border border-rose-200">
-                  <h3 className="text-xs uppercase font-bold tracking-wider text-rose-800 mb-2">
+                <div className="p-4 rounded-2xl bg-rose-950/30 border border-rose-500/20 space-y-2">
+                  <h3 className="text-xs uppercase font-bold tracking-wider text-rose-400">
                     {language === 'hi' ? 'अपात्रता मानदंड (कौन आवेदन नहीं कर सकता)' : 'Exclusion Criteria (Who Cannot Apply)'}
                   </h3>
-                  <ul className="space-y-1 text-xs text-rose-950 list-disc list-inside">
+                  <ul className="space-y-1 text-xs text-rose-200/90 list-disc list-inside">
                     {scheme.eligibility.excludedOccupations.map((ex, i) => (
                       <li key={i}>{ex}</li>
                     ))}
@@ -180,34 +176,34 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
 
           {activeTab === 'documents' && (
             <div className="space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-slate-400">
                 {language === 'hi'
                   ? 'आवेदन से पूर्व इन आधिकारिक दस्तावेजों की मूल व छायाप्रति तैयार रखें:'
-                  : 'Prepare original and self-attested photocopies of the following verified documents:'}
+                  : 'Official document requirements based on verified ministry guidelines:'}
               </p>
 
               <div className="space-y-2.5">
                 {scheme.documents.map((doc, idx) => (
                   <div
                     key={idx}
-                    className="p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs flex items-start gap-3"
+                    className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] flex items-start gap-3"
                   >
-                    <CheckSquare className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-                    <div className="flex-1 text-xs">
+                    <CheckSquare className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                    <div className="flex-1 text-xs space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-bold text-slate-900 text-sm">
+                        <span className="font-bold text-white text-sm">
                           {language === 'hi' ? doc.nameHindi : doc.name}
                         </span>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          doc.required ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
+                          doc.required ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-white/[0.05] text-slate-300'
                         }`}>
                           {doc.required ? (language === 'hi' ? 'अनिवार्य' : 'Mandatory') : (language === 'hi' ? 'वैकल्पिक' : 'Optional')}
                         </span>
                       </div>
-                      <p className="text-slate-600 mt-1">
+                      <p className="text-slate-400">
                         {language === 'hi' ? doc.purposeHindi : doc.purpose}
                       </p>
-                      <div className="text-[11px] text-slate-400 mt-1">
+                      <div className="text-[10px] text-slate-500">
                         Ref: Page {doc.sourcePage} ({doc.sourceSection})
                       </div>
                     </div>
@@ -221,14 +217,14 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-3">
                 {scheme.benefits.map((b, idx) => (
-                  <div key={idx} className="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-1">
-                    <span className="text-xs uppercase font-bold tracking-wider text-blue-700">
+                  <div key={idx} className="p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] space-y-1">
+                    <span className="text-xs uppercase font-bold tracking-wider text-blue-400">
                       {language === 'hi' ? b.titleHindi : b.title}
                     </span>
-                    <h4 className="text-base font-extrabold text-slate-900">
+                    <h4 className="text-lg font-black text-white">
                       {b.amountOrCoverage}
                     </h4>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400">
                       {language === 'hi' ? b.frequencyHindi : b.frequency}
                     </p>
                   </div>
@@ -238,46 +234,42 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
           )}
 
           {activeTab === 'apply' && (
-            <div className="space-y-4">
-              <div className="space-y-3">
-                {scheme.applicationSteps.map((step) => (
-                  <div key={step.stepNumber} className="flex gap-3 p-3.5 rounded-xl border border-slate-200 bg-white shadow-2xs">
-                    <div className="w-7 h-7 rounded-full bg-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                      {step.stepNumber}
-                    </div>
-                    <div className="space-y-1 text-xs">
-                      <h4 className="font-bold text-slate-900 text-sm">
-                        {language === 'hi' ? step.titleHindi : step.title}
-                      </h4>
-                      <p className="text-slate-600 leading-relaxed">
-                        {language === 'hi' ? step.detailsHindi : step.details}
-                      </p>
-                    </div>
+            <div className="space-y-3">
+              {scheme.applicationSteps.map((step) => (
+                <div key={step.stepNumber} className="flex gap-3 p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02]">
+                  <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
+                    {step.stepNumber}
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-1 text-xs">
+                    <h4 className="font-bold text-white text-sm">
+                      {language === 'hi' ? step.titleHindi : step.title}
+                    </h4>
+                    <p className="text-slate-400 leading-relaxed">
+                      {language === 'hi' ? step.detailsHindi : step.details}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Modal Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                onClose();
-                onAskAI(
-                  language === 'hi'
-                    ? `${scheme.hindiName} के बारे में मुझे विस्तार से बताएं।`
-                    : `Explain the key rules, eligibility, and documents for ${scheme.name}.`
-                );
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-semibold shadow-xs transition-colors"
-            >
-              <MessageSquare className="w-3.5 h-3.5" />
-              <span>{language === 'hi' ? 'इस योजना पर एआई से सवाल पूछें' : 'Ask AI About This Scheme'}</span>
-            </button>
-          </div>
+        {/* Footer */}
+        <div className="px-6 py-4 bg-white/[0.02] border-t border-white/[0.08] flex flex-wrap items-center justify-between gap-3">
+          <button
+            onClick={() => {
+              onClose();
+              onAskAI(
+                language === 'hi'
+                  ? `${scheme.hindiName} की पात्रता और लाभ के बारे में बताएं।`
+                  : `Explain the eligibility and key benefits for ${scheme.name}.`
+              );
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold shadow-md transition-all"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>{language === 'hi' ? 'इस योजना पर एआई से पूछें →' : 'Ask AI about this scheme →'}</span>
+          </button>
 
           <div className="flex items-center gap-2">
             {scheme.officialPortal && (
@@ -285,7 +277,7 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
                 href={scheme.officialPortal}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.1] bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 text-xs font-semibold transition-colors"
               >
                 <span>{language === 'hi' ? 'आधिकारिक पोर्टल' : 'Official Portal'}</span>
                 <ExternalLink className="w-3.5 h-3.5" />
@@ -293,7 +285,7 @@ export const SchemeDetailModal: React.FC<SchemeDetailModalProps> = ({
             )}
             <button
               onClick={onClose}
-              className="px-3 py-2 rounded-xl text-slate-500 hover:text-slate-800 text-xs font-medium"
+              className="px-3 py-2 rounded-xl text-slate-400 hover:text-white text-xs font-medium"
             >
               {language === 'hi' ? 'बंद करें' : 'Close'}
             </button>

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Building2, 
   MessageSquare, 
@@ -6,11 +6,10 @@ import {
   CheckCircle2, 
   FileText, 
   ShieldCheck, 
-  Database, 
-  Info, 
-  Globe2,
+  Sparkles,
   Menu,
-  X
+  X,
+  ArrowRight
 } from 'lucide-react';
 import { Language } from '../types';
 
@@ -19,7 +18,6 @@ interface NavbarProps {
   setCurrentTab: (tab: string) => void;
   language: Language;
   setLanguage: (lang: Language) => void;
-  onOpenQuickChat?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -28,132 +26,129 @@ export const Navbar: React.FC<NavbarProps> = ({
   language,
   setLanguage,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const navItems = [
-    { id: 'home', labelEn: 'Home', labelHi: 'होम', icon: Building2 },
-    { id: 'chat', labelEn: 'AI Assistant', labelHi: 'एआई सहायक', icon: MessageSquare },
-    { id: 'schemes', labelEn: 'Schemes', labelHi: 'योजनाएं', icon: Layers },
-    { id: 'eligibility', labelEn: 'Eligibility Checker', labelHi: 'पात्रता जांच', icon: CheckCircle2 },
-    { id: 'documents', labelEn: 'Documents', labelHi: 'दस्तावेज', icon: FileText },
-    { id: 'admin', labelEn: 'Knowledge Base', labelHi: 'ज्ञान केंद्र (Admin)', icon: Database },
-    { id: 'about', labelEn: 'About', labelHi: 'परिचय', icon: Info },
+    { id: 'home', labelEn: 'Home', labelHi: 'होम' },
+    { id: 'chat', labelEn: 'Assistant', labelHi: 'एआई सहायक' },
+    { id: 'schemes', labelEn: 'Schemes', labelHi: 'योजनाएं' },
+    { id: 'eligibility', labelEn: 'Eligibility', labelHi: 'पात्रता जांच' },
+    { id: 'documents', labelEn: 'Documents', labelHi: 'दस्तावेज' },
+    { id: 'about', labelEn: 'Trust & RAG', labelHi: 'विश्वसनीयता' },
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-xs">
-      {/* Top Public Service Banner */}
-      <div className="bg-gradient-to-r from-amber-600 via-blue-700 to-emerald-700 text-white text-xs py-1 px-4">
+    <header className="sticky top-0 z-50 bg-[#06080e]/85 backdrop-blur-xl border-b border-white/[0.08] transition-all">
+      {/* Top Ambient Bar */}
+      <div className="bg-gradient-to-r from-amber-500/10 via-blue-500/15 to-emerald-500/10 border-b border-white/[0.05] text-[11px] py-1 px-4 text-slate-300">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <span className="inline-block w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span>
-            <span className="font-medium tracking-wide">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span className="font-medium tracking-wide text-slate-200">
               {language === 'hi'
-                ? 'भारत सरकार की योजनाओं के लिए आधिकारिक दस्तावेज़-आधारित एआई'
+                ? 'भारत सरकार की योजनाओं के लिए आधिकारिक RAG एआई सहायक'
                 : 'Official Document-Grounded AI for Indian Government Schemes'}
             </span>
           </div>
-          <div className="hidden sm:flex items-center space-x-3 text-white/90 text-[11px]">
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-              {language === 'hi' ? 'सत्यापित स्रोत' : 'Zero Hallucination Grounding'}
+          <div className="hidden sm:flex items-center space-x-3 text-slate-400 text-[11px]">
+            <span className="flex items-center gap-1 text-emerald-400/90 font-medium">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {language === 'hi' ? 'सत्यापित स्रोत आधारित' : 'Zero Hallucination Guarantee'}
             </span>
             <span>•</span>
-            <span>{language === 'hi' ? 'हेल्पलाइन: 1800-11-5555' : 'Public Guidance Initiative'}</span>
+            <span className="text-slate-400">{language === 'hi' ? 'अंतिम अपडेट: 2026' : 'National Portal Data'}</span>
           </div>
         </div>
       </div>
 
       {/* Main Navbar */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+        <div className="flex items-center justify-between h-18">
+          {/* Brand Logo */}
           <div 
             onClick={() => setCurrentTab('home')}
             className="flex items-center gap-3 cursor-pointer group"
           >
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-blue-700 to-indigo-900 text-white shadow-md shadow-blue-900/20 group-hover:scale-105 transition-transform">
+            <div className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-500 text-white shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform border border-white/20">
               <span className="text-xl font-black tracking-tighter">य</span>
-              <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-[9px] font-bold text-white ring-2 ring-white">
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black text-slate-950">
                 ✓
               </span>
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-xl font-extrabold tracking-tight text-slate-900">
-                  Yojana<span className="text-blue-700">Sahayak</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black tracking-tight text-white group-hover:text-blue-300 transition-colors">
+                  Yojana<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Sahayak</span>
                 </span>
-                <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-blue-100 text-blue-800">
+                <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
                   RAG
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide">
                 {language === 'hi' ? 'सरकारी योजनाएं, सबके लिए आसान' : 'Government Schemes, Simplified'}
               </p>
             </div>
           </div>
 
-          {/* Desktop Nav Items */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
-              const Icon = item.icon;
               const isActive = currentTab === item.id;
               return (
                 <button
                   key={item.id}
                   onClick={() => setCurrentTab(item.id)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-semibold tracking-wide transition-all ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 shadow-2xs font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
+                      ? 'bg-white/[0.09] text-white border border-white/[0.15] shadow-xs'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
-                  <span>{language === 'hi' ? item.labelHi : item.labelEn}</span>
+                  {language === 'hi' ? item.labelHi : item.labelEn}
                 </button>
               );
             })}
           </nav>
 
           {/* Right Controls: Language Selector & CTA */}
-          <div className="flex items-center gap-2.5">
-            {/* Language Selector Button */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-3">
+            {/* Bilingual Switcher */}
+            <div className="flex items-center bg-white/[0.05] p-1 rounded-xl border border-white/[0.08]">
               <button
                 onClick={() => setLanguage('en')}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
                   language === 'en'
-                    ? 'bg-white text-blue-800 shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
-                English
+                EN
               </button>
               <button
                 onClick={() => setLanguage('hi')}
-                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-all ${
+                className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-all ${
                   language === 'hi'
-                    ? 'bg-blue-700 text-white shadow-xs'
-                    : 'text-slate-600 hover:text-slate-900'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-white'
                 }`}
               >
                 हिन्दी
               </button>
             </div>
 
-            {/* Quick Ask AI CTA */}
+            {/* Cinematic CTA */}
             <button
               onClick={() => setCurrentTab('chat')}
-              className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white px-3.5 py-2 rounded-lg text-xs font-semibold shadow-xs hover:shadow-md transition-all"
+              className="hidden sm:inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-500 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:scale-[1.02] active:scale-[0.98] transition-all border border-blue-400/30"
             >
-              <MessageSquare className="w-4 h-4" />
-              <span>{language === 'hi' ? 'सवाल पूछें' : 'Ask Scheme AI'}</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{language === 'hi' ? 'सवाल पूछें →' : 'Ask Assistant →'}</span>
             </button>
 
-            {/* Mobile menu toggle */}
+            {/* Mobile menu trigger */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100"
+              className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-white/[0.05] border border-white/[0.08]"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -164,9 +159,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-4 space-y-1 shadow-lg">
+        <div className="md:hidden border-t border-white/[0.08] bg-[#06080e]/95 backdrop-blur-2xl px-4 pt-3 pb-6 space-y-2 shadow-2xl">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const isActive = currentTab === item.id;
             return (
               <button
@@ -175,17 +169,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                   setCurrentTab(item.id);
                   setMobileMenuOpen(false);
                 }}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                className={`flex items-center justify-between w-full px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                   isActive
-                    ? 'bg-blue-50 text-blue-700 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-100'
+                    ? 'bg-blue-600/20 text-blue-300 border border-blue-500/30'
+                    : 'text-slate-300 hover:text-white hover:bg-white/[0.05]'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-blue-700' : 'text-slate-400'}`} />
                 <span>{language === 'hi' ? item.labelHi : item.labelEn}</span>
+                <ArrowRight className="w-4 h-4 text-slate-500" />
               </button>
             );
           })}
+
+          <div className="pt-2">
+            <button
+              onClick={() => {
+                setCurrentTab('chat');
+                setMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 text-white font-bold text-sm shadow-md"
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>{language === 'hi' ? 'योजना सहायक से पूछें →' : 'Ask Yojana Sahayak →'}</span>
+            </button>
+          </div>
         </div>
       )}
     </header>

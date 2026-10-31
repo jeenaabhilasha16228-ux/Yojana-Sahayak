@@ -209,16 +209,40 @@ export function retrieveRelevantChunks(query: string, maxResults: number = 4): {
   return { chunks: selectedChunks, citations, bestScore };
 }
 
-// Generate grounded RAG response via Gemini 3.8 Flash
+// Model configuration with default fallback
+const ACTIVE_GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash';
+
+// Generate grounded RAG response via Gemini
 export async function generateGroundedResponse(
   query: string,
   userLanguage?: Language,
-  schemeFocusId?: string
+  schemeFocusId?: string,
+  conversationHistory?: Array<{ sender: string; text: string }>
 ): Promise<StructuredAIResponse> {
   const lang = userLanguage || detectLanguage(query);
   
+  // If the query contains pronouns like "this scheme", "is yojana", etc.
+  // check conversation history to deduce the active scheme
+  let contextualSchemeId = schemeFocusId;
+  if (!contextualSchemeId && conversationHistory && conversationHistory.length > 0) {
+    const isContextualQuery = /this scheme|this|it|is yojana|is scheme|is yojana mein|isme|is me|is ke liye/i.test(query);
+    if (isContextualQuery) {
+      // Look backwards in history for mentioned schemes
+      for (let i = conversationHistory.length - 1; i >= 0; i--) {
+        const histAnalysis = analyzeQuery(conversationHistory[i].text);
+        if (histAnalysis.targetedSchemeId) {
+          contextualSchemeId = histAnalysis.targetedSchemeId;
+          break;
+        }
+      }
+    }
+  }
+
   // Retrieve top relevant chunks from official knowledge base
-  const { chunks, citations, bestScore } = retrieveRelevantChunks(query, 4);
+  const { chunks, citations, bestScore } = retrieveRelevantChunks(
+    contextualSchemeId ? `${contextualSchemeId} ${query}` : query, 
+    4
+  );
 
   // If no chunks match or score is below threshold, return strict "not found"
   if (chunks.length === 0 || bestScore < 4) {
@@ -304,7 +328,7 @@ ${contextFormatted}
 Generate a grounded JSON response following the schema.`;
 
     const generatePromise = ai.models.generateContent({
-      model: 'gemini-3.8-flash',
+      model: ACTIVE_GEMINI_MODEL,
       contents: prompt,
       config: {
         systemInstruction,

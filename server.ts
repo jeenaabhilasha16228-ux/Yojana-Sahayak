@@ -36,12 +36,12 @@ app.get('/api/health', (req: Request, res: Response) => {
 // 1. RAG Chat Assistant Endpoint
 app.post('/api/chat', async (req: Request, res: Response) => {
   try {
-    const { message, language, schemeFocusId } = req.body;
+    const { message, language, schemeFocusId, conversationHistory } = req.body;
     if (!message || typeof message !== 'string') {
       return res.status(400).json({ error: 'Message query is required' });
     }
 
-    const structuredResult = await generateGroundedResponse(message, language, schemeFocusId);
+    const structuredResult = await generateGroundedResponse(message, language, schemeFocusId, conversationHistory);
     return res.json(structuredResult);
   } catch (error) {
     console.error('Error in /api/chat:', error);

@@ -17,8 +17,8 @@ import {
   Layers, 
   ExternalLink,
   Mic,
-  MicOff,
-  ShieldAlert,
+  ShieldCheck,
+  RefreshCw,
   Info
 } from 'lucide-react';
 import { ChatMessage, Language, Scheme, SourceCitation, StructuredAIResponse } from '../types';
@@ -44,14 +44,14 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
       sender: 'assistant',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       text: language === 'hi' 
-        ? 'नमस्ते! मैं **योजना सहायक** हूँ—भारत सरकार की योजनाओं के लिए आपका आधिकारिक दस्तावेज़-आधारित मार्गदर्शक।\n\nआप मुझसे किसी भी योजना की **पात्रता**, **आवश्यक दस्तावेज़**, **लाभ** या **आवेदन प्रक्रिया** के बारे में हिन्दी, English या Hinglish में पूछ सकते हैं।\n\nप्रत्येक उत्तर आधिकारिक सरकारी दस्तावेज़ और पृष्ठ संख्या के प्रमाण के साथ दिया जाएगा।'
-        : 'Namaste! I am **Yojana Sahayak**, your bilingual AI assistant grounded strictly in official Indian government scheme guidelines.\n\nYou can ask about **eligibility**, **required documents**, **benefits**, or **how to apply** in English, Hindi, or Hinglish.\n\nEvery factual answer cites the exact official document, section, and page number.'
+        ? 'नमस्ते! मैं **योजना सहायक** हूँ—सरकारी योजनाओं के लिए आपका आधिकारिक मार्गदर्शक।\n\nआप मुझसे किसी भी योजना की **पात्रता**, **आवश्यक कागजात**, **लाभ** या **आवेदन प्रक्रिया** के बारे में हिन्दी, English या Hinglish में पूछ सकते हैं।\n\nप्रत्येक उत्तर सीधे आधिकारिक सरकारी गजट और दिशानिर्देशों के पृष्ठ संख्या के संदर्भ के साथ दिया जाएगा।'
+        : 'Namaste! I am **Yojana Sahayak**, your AI assistant for Indian government schemes.\n\nYou can ask about **eligibility**, **required documents**, **benefits**, or **how to apply** in English, Hindi, or Hinglish.\n\nEvery factual answer cites the exact official government document, section, and page number.'
     }
   ]);
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [loadingStage, setLoadingStage] = useState('');
+  const [lastFailedQuery, setLastFailedQuery] = useState<string | null>(null);
   const [selectedSchemeFilter, setSelectedSchemeFilter] = useState<string>('all');
   const [isSpeaking, setIsSpeaking] = useState<string | null>(null);
   const [isListening, setIsListening] = useState(false);
@@ -60,7 +60,6 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -69,7 +68,6 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     scrollToBottom();
   }, [messages, loading]);
 
-  // Handle initial query passed from home or scheme card
   useEffect(() => {
     if (initialQuery && initialQuery.trim()) {
       handleSendMessage(initialQuery.trim());
@@ -90,6 +88,8 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     const textToSend = queryText || input.trim();
     if (!textToSend || loading) return;
 
+    setLastFailedQuery(null);
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       sender: 'user',
@@ -101,21 +101,28 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
-    setLoadingStage(language === 'hi' ? 'आधिकारिक सरकारी दस्तावेज़ खोजे जा रहे हैं...' : 'Retrieving official PDF guidelines...');
+
+    // Prepare conversation history for context resolution (e.g. "this scheme")
+    const historyPayload = messages.slice(-4).map(m => ({
+      sender: m.sender,
+      text: m.text
+    }));
 
     try {
+      // Relative URL /api/chat works both locally and on Vercel!
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: textToSend,
           language,
-          schemeFocusId: selectedSchemeFilter !== 'all' ? selectedSchemeFilter : undefined
+          schemeFocusId: selectedSchemeFilter !== 'all' ? selectedSchemeFilter : undefined,
+          conversationHistory: historyPayload
         })
       });
 
       if (!response.ok) {
-        throw new Error(`Server returned ${response.status}`);
+        throw new Error(`Server returned HTTP ${response.status}`);
       }
 
       const structuredResult: StructuredAIResponse = await response.json();
@@ -132,23 +139,23 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
 
       setMessages(prev => [...prev, assistantMessage]);
     } catch (err) {
-      console.error('Chat error:', err);
+      console.error('Chat API Error:', err);
+      setLastFailedQuery(textToSend);
+
       const errorMessage: ChatMessage = {
         id: `assistant-err-${Date.now()}`,
         sender: 'assistant',
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         text: language === 'hi'
-          ? 'क्षमा करें, आधिकारिक जानकारी प्राप्त करने में अस्थायी समस्या आई। कृपया पुनः प्रयास करें।'
-          : 'Sorry, there was a temporary issue retrieving the official guidelines. Please try again.',
+          ? 'एआई सहायक अस्थायी रूप से अनुपलब्ध है। कृपया पुनः प्रयास करें।'
+          : 'The AI assistant is temporarily unavailable. Please try again.',
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
-      setLoadingStage('');
     }
   };
 
-  // Text to speech function
   const speakText = (text: string, msgId: string, lang?: string) => {
     if (!('speechSynthesis' in window)) return;
 
@@ -170,11 +177,10 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     window.speechSynthesis.speak(utterance);
   };
 
-  // Voice recognition function
   const toggleSpeechRecognition = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert(language === 'hi' ? 'आपके ब्राउज़र में वॉइस रिकग्निशन समर्थित नहीं है।' : 'Voice recognition is not supported in this browser.');
+      alert(language === 'hi' ? 'ब्राउज़र में वॉइस इनपुट समर्थित नहीं है।' : 'Voice recognition is not supported in this browser.');
       return;
     }
 
@@ -200,79 +206,73 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
     recognition.start();
   };
 
-  const copyMessageText = (msg: ChatMessage) => {
-    let fullText = msg.text;
+  const copyMessage = (msg: ChatMessage) => {
+    let full = msg.text;
     if (msg.structuredResponse) {
-      if (msg.structuredResponse.eligibility) {
-        fullText += `\n\nEligibility:\n${msg.structuredResponse.eligibility}`;
-      }
-      if (msg.structuredResponse.documentsRequired) {
-        fullText += `\n\nRequired Documents:\n${msg.structuredResponse.documentsRequired.join('\n- ')}`;
-      }
-      if (msg.structuredResponse.benefits) {
-        fullText += `\n\nBenefits:\n${msg.structuredResponse.benefits}`;
-      }
-      if (msg.structuredResponse.sources && msg.structuredResponse.sources.length > 0) {
-        fullText += `\n\nSources:\n${msg.structuredResponse.sources.map(s => `${s.documentTitle} (Page ${s.pageNumber})`).join('\n')}`;
+      if (msg.structuredResponse.eligibility) full += `\n\nEligibility:\n${msg.structuredResponse.eligibility}`;
+      if (msg.structuredResponse.documentsRequired) full += `\n\nDocuments:\n${msg.structuredResponse.documentsRequired.join('\n- ')}`;
+      if (msg.structuredResponse.benefits) full += `\n\nBenefits:\n${msg.structuredResponse.benefits}`;
+      if (msg.structuredResponse.sources) {
+        full += `\n\nSources:\n${msg.structuredResponse.sources.map(s => `${s.documentTitle} (Page ${s.pageNumber})`).join('\n')}`;
       }
     }
-    navigator.clipboard.writeText(fullText);
+    navigator.clipboard.writeText(full);
     setCopiedId(msg.id);
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const quickFollowUps = language === 'hi' ? [
-    'क्या मैं पात्र हूँ?',
-    'कौन-कौन से दस्तावेज चाहिए?',
-    'आवेदन कैसे करें?',
-    'कितना लाभ मिलेगा?'
+  const quickPrompts = language === 'hi' ? [
+    'क्या मैं इस योजना के लिए पात्र हूँ?',
+    'मुझे कौन से दस्तावेज चाहिए?',
+    'मुझे कितना लाभ मिलेगा?',
+    'आवेदन करने के चरण क्या हैं?'
   ] : [
-    'Am I eligible?',
+    'Am I eligible for this scheme?',
     'What documents do I need?',
-    'How do I apply?',
-    'What are the key benefits?'
+    'How much benefit will I receive?',
+    'What are the application steps?'
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col h-[calc(100vh-8.5rem)]">
-      {/* Chat Header Controls */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-3 sm:p-4 mb-4 shadow-2xs flex flex-wrap items-center justify-between gap-3 shrink-0">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col h-[calc(100vh-8.5rem)] text-slate-100">
+      {/* Chat Controls Top Bar */}
+      <div className="bg-white/[0.03] rounded-2xl border border-white/[0.08] p-3 sm:p-4 mb-4 shadow-xl backdrop-blur-xl flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-700 text-white shadow-xs">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-500/20">
             <Bot className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-bold text-slate-900">
-                {language === 'hi' ? 'योजना सहायक एआई चैट' : 'Yojana Sahayak AI Assistant'}
+              <h2 className="text-sm sm:text-base font-bold text-white">
+                {language === 'hi' ? 'योजना सहायक एआई' : 'Yojana Sahayak Assistant'}
               </h2>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-                RAG Active
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                RAG Grounded
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">
+            <p className="text-[11px] text-slate-400">
               {language === 'hi' 
-                ? 'सरकारी दिशानिर्देशों से सत्यापित उत्तर (Zero Hallucination)'
-                : 'Directly grounded in official government scheme gazettes'}
+                ? 'सरकारी दिशानिर्देशों से सत्यापित उत्तर (No Hallucination)' 
+                : 'Directly grounded in official government gazettes'}
             </p>
           </div>
         </div>
 
-        {/* Scheme focus filter & clear button */}
+        {/* Scheme focus & reset */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-2.5 py-1.5 rounded-lg border border-slate-200">
+          <div className="flex items-center gap-1.5 text-xs text-slate-300 bg-white/[0.04] px-2.5 py-1.5 rounded-xl border border-white/[0.08]">
             <Layers className="w-3.5 h-3.5 text-slate-400" />
             <select
               value={selectedSchemeFilter}
               onChange={(e) => setSelectedSchemeFilter(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-slate-800 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[200px] truncate"
+              className="bg-transparent text-xs font-semibold text-slate-200 focus:outline-none cursor-pointer max-w-[140px] sm:max-w-[180px] truncate"
             >
-              <option value="all">
-                {language === 'hi' ? 'सभी सरकारी योजनाएं (All)' : 'All Government Schemes'}
+              <option value="all" className="bg-[#0b0e14] text-white">
+                {language === 'hi' ? 'सभी सरकारी योजनाएं' : 'All Schemes'}
               </option>
               {schemes.map(s => (
-                <option key={s.id} value={s.id}>
+                <option key={s.id} value={s.id} className="bg-[#0b0e14] text-white">
                   {language === 'hi' ? s.hindiName : s.name}
                 </option>
               ))}
@@ -289,13 +289,13 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                   sender: 'assistant',
                   timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                   text: language === 'hi'
-                    ? 'बातचीत रीसेट हो गई है। आप किस योजना के बारे में जानना चाहते हैं?'
-                    : 'Chat cleared. Which scheme would you like to explore today?'
+                    ? 'बातचीत रीसेट हो गई है। आप किस सरकारी योजना के बारे में जानना चाहते हैं?'
+                    : 'Chat cleared. Which government scheme would you like to explore?'
                 }
               ]);
             }}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
-            title={language === 'hi' ? 'बातचीत साफ़ करें' : 'Clear Chat'}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.05] rounded-xl transition-colors border border-transparent hover:border-white/[0.08]"
+            title={language === 'hi' ? 'बातचीत साफ़ करें' : 'Clear chat'}
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -313,28 +313,26 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
               key={msg.id}
               className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}
             >
-              {/* Avatar */}
               {!isUser && (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 to-indigo-900 text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
-                  <Bot className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-500/20 mt-1 border border-white/20">
+                  <Bot className="w-4 h-4" />
                 </div>
               )}
 
-              {/* Message Bubble Card */}
               <div
-                className={`max-w-[88%] sm:max-w-[80%] rounded-2xl p-4 sm:p-5 shadow-xs transition-all ${
+                className={`max-w-[90%] sm:max-w-[82%] rounded-2xl p-4 sm:p-5 transition-all ${
                   isUser
-                    ? 'bg-blue-700 text-white rounded-tr-xs'
-                    : 'bg-white border border-slate-200 text-slate-800 rounded-tl-xs space-y-4'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-xs shadow-lg'
+                    : 'bg-white/[0.04] border border-white/[0.08] text-slate-100 rounded-tl-xs shadow-xl space-y-4 backdrop-blur-md'
                 }`}
               >
-                {/* Header info */}
+                {/* Header */}
                 <div className="flex items-center justify-between gap-3 text-[11px] mb-1">
-                  <span className={`font-semibold ${isUser ? 'text-blue-100' : 'text-slate-500'}`}>
+                  <span className={`font-semibold ${isUser ? 'text-blue-100' : 'text-slate-400'}`}>
                     {isUser ? (language === 'hi' ? 'आप' : 'You') : 'Yojana Sahayak'}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className={isUser ? 'text-blue-200' : 'text-slate-400'}>
+                    <span className={isUser ? 'text-blue-200' : 'text-slate-500'}>
                       {msg.timestamp}
                     </span>
                     {!isUser && (
@@ -344,11 +342,11 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                           msg.id,
                           msg.language
                         )}
-                        className="p-1 text-slate-400 hover:text-blue-700 rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-white rounded transition-colors"
                         title={isSpeaking === msg.id ? 'Stop reading' : 'Read aloud'}
                       >
                         {isSpeaking === msg.id ? (
-                          <VolumeX className="w-3.5 h-3.5 text-blue-700 animate-pulse" />
+                          <VolumeX className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
                         ) : (
                           <Volume2 className="w-3.5 h-3.5" />
                         )}
@@ -356,12 +354,12 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                     )}
                     {!isUser && (
                       <button
-                        onClick={() => copyMessageText(msg)}
-                        className="p-1 text-slate-400 hover:text-slate-700 rounded transition-colors"
+                        onClick={() => copyMessage(msg)}
+                        className="p-1 text-slate-400 hover:text-white rounded transition-colors"
                         title="Copy answer"
                       >
                         {copiedId === msg.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
                         ) : (
                           <Copy className="w-3.5 h-3.5" />
                         )}
@@ -370,22 +368,22 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                   </div>
                 </div>
 
-                {/* Main Text Content */}
-                <div className={`text-sm leading-relaxed whitespace-pre-wrap ${isUser ? 'text-white' : 'text-slate-800 font-normal'}`}>
+                {/* Direct Answer */}
+                <div className="text-sm leading-relaxed whitespace-pre-wrap font-normal">
                   {msg.text}
                 </div>
 
-                {/* Structured Assistant Sections */}
+                {/* Structured Sections */}
                 {structured && (
-                  <div className="space-y-4 pt-2 border-t border-slate-100 text-xs">
-                    {/* Eligibility Section */}
+                  <div className="space-y-3 pt-2 border-t border-white/[0.08] text-xs">
+                    {/* Eligibility */}
                     {structured.eligibility && (
-                      <div className="rounded-xl bg-blue-50/70 border border-blue-200/80 p-3.5">
-                        <div className="flex items-center gap-1.5 font-bold text-blue-900 mb-1.5 text-xs uppercase tracking-wider">
-                          <span className="w-2 h-2 rounded-full bg-blue-700"></span>
-                          {language === 'hi' ? 'पात्रता मानदंड (Eligibility)' : 'Eligibility Criteria'}
+                      <div className="rounded-xl bg-blue-950/40 border border-blue-500/20 p-3.5">
+                        <div className="flex items-center gap-1.5 font-bold text-blue-300 mb-1.5 text-xs uppercase tracking-wider">
+                          <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                          {language === 'hi' ? 'पात्रता (Eligibility)' : 'Eligibility'}
                         </div>
-                        <p className="text-slate-700 text-xs sm:text-[13px] leading-relaxed">
+                        <p className="text-slate-200 text-xs sm:text-[13px] leading-relaxed">
                           {structured.eligibility}
                         </p>
                       </div>
@@ -393,14 +391,14 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
 
                     {/* Documents Required Checklist */}
                     {structured.documentsRequired && structured.documentsRequired.length > 0 && (
-                      <div className="rounded-xl bg-amber-50/70 border border-amber-200/80 p-3.5">
+                      <div className="rounded-xl bg-amber-950/30 border border-amber-500/20 p-3.5">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-amber-900 uppercase tracking-wider text-xs flex items-center gap-1.5">
-                            <FileText className="w-3.5 h-3.5 text-amber-700" />
-                            {language === 'hi' ? 'आवश्यक दस्तावेज़ चेकलिस्ट (Required Documents)' : 'Required Documents Checklist'}
+                          <span className="font-bold text-amber-300 uppercase tracking-wider text-xs flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-amber-400" />
+                            {language === 'hi' ? 'आवश्यक दस्तावेज़ (Documents Required)' : 'Documents Required'}
                           </span>
-                          <span className="text-[10px] text-amber-700/80 font-medium">
-                            {language === 'hi' ? 'कागजात तैयार करें' : 'Interactive checklist'}
+                          <span className="text-[10px] text-amber-400/80 font-medium">
+                            Checklist
                           </span>
                         </div>
                         <div className="space-y-2">
@@ -412,13 +410,15 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                                 key={idx}
                                 onClick={() => toggleDocCheck(key)}
                                 className={`flex items-start gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${
-                                  isChecked ? 'bg-amber-100/70 line-through text-slate-500' : 'bg-white text-slate-800 border border-amber-200/50 hover:bg-amber-100/40'
+                                  isChecked 
+                                    ? 'bg-amber-500/20 line-through text-slate-400' 
+                                    : 'bg-white/[0.03] text-slate-200 border border-white/[0.05] hover:bg-white/[0.06]'
                                 }`}
                               >
                                 {isChecked ? (
-                                  <CheckSquare className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                                  <CheckSquare className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                                 ) : (
-                                  <Square className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                                  <Square className="w-4 h-4 text-slate-500 shrink-0 mt-0.5" />
                                 )}
                                 <span className="text-xs sm:text-[13px] font-medium leading-snug">
                                   {doc}
@@ -430,42 +430,42 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                       </div>
                     )}
 
-                    {/* Benefits Section */}
+                    {/* Benefits */}
                     {structured.benefits && (
-                      <div className="rounded-xl bg-emerald-50/70 border border-emerald-200/80 p-3.5">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-900 mb-1.5 text-xs uppercase tracking-wider">
-                          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                          {language === 'hi' ? 'योजना के मुख्य लाभ (Benefits)' : 'Scheme Benefits'}
+                      <div className="rounded-xl bg-emerald-950/30 border border-emerald-500/20 p-3.5">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-300 mb-1.5 text-xs uppercase tracking-wider">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                          {language === 'hi' ? 'मुख्य लाभ (Benefits)' : 'Benefits'}
                         </div>
-                        <p className="text-slate-700 text-xs sm:text-[13px] leading-relaxed">
+                        <p className="text-slate-200 text-xs sm:text-[13px] leading-relaxed">
                           {structured.benefits}
                         </p>
                       </div>
                     )}
 
-                    {/* Application Process Section */}
+                    {/* Application Process */}
                     {structured.applicationProcess && (
-                      <div className="rounded-xl bg-indigo-50/70 border border-indigo-200/80 p-3.5">
-                        <div className="flex items-center gap-1.5 font-bold text-indigo-900 mb-1.5 text-xs uppercase tracking-wider">
-                          <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                          {language === 'hi' ? 'आवेदन कैसे करें (Application Steps)' : 'Application Process'}
+                      <div className="rounded-xl bg-purple-950/30 border border-purple-500/20 p-3.5">
+                        <div className="flex items-center gap-1.5 font-bold text-purple-300 mb-1.5 text-xs uppercase tracking-wider">
+                          <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                          {language === 'hi' ? 'आवेदन कैसे करें (How to Apply)' : 'How to Apply'}
                         </div>
-                        <div className="text-slate-700 text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap">
+                        <div className="text-slate-200 text-xs sm:text-[13px] leading-relaxed whitespace-pre-wrap">
                           {structured.applicationProcess}
                         </div>
                       </div>
                     )}
 
-                    {/* Source Citations Badges (Crucial Requirement!) */}
+                    {/* Source Citations */}
                     {structured.sources && structured.sources.length > 0 && (
                       <div className="pt-2">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="font-bold text-slate-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                            <BookOpen className="w-3.5 h-3.5 text-blue-700" />
-                            {language === 'hi' ? 'संदर्भित आधिकारिक स्रोत (Click to inspect source):' : 'Official Sources Cited:'}
+                          <span className="font-bold text-slate-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                            <BookOpen className="w-3.5 h-3.5 text-blue-400" />
+                            {language === 'hi' ? 'आधिकारिक स्रोत (Official Sources):' : 'Official Sources:'}
                           </span>
-                          <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                            100% Grounded
+                          <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+                            Verified
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -473,13 +473,13 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                             <button
                               key={sIdx}
                               onClick={() => onOpenSourceModal(cit)}
-                              className="inline-flex items-center gap-1.5 bg-slate-50 hover:bg-blue-50 text-slate-700 hover:text-blue-800 border border-slate-200 hover:border-blue-300 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-2xs group"
+                              className="inline-flex items-center gap-1.5 bg-white/[0.04] hover:bg-blue-600/20 text-slate-200 hover:text-white border border-white/[0.08] hover:border-blue-500/40 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all group"
                             >
-                              <FileText className="w-3 h-3 text-blue-700" />
+                              <FileText className="w-3 h-3 text-blue-400" />
                               <span className="underline decoration-dotted underline-offset-2">
                                 {cit.documentTitle} — {cit.section}, Page {cit.pageNumber}
                               </span>
-                              <ExternalLink className="w-3 h-3 text-slate-400 group-hover:text-blue-700" />
+                              <ExternalLink className="w-3 h-3 text-slate-500 group-hover:text-white" />
                             </button>
                           ))}
                         </div>
@@ -488,16 +488,16 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
 
                     {/* Not Found in Docs Warning */}
                     {structured.notFoundInDocs && (
-                      <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
                         <div className="text-xs">
                           <span className="font-bold block">
-                            {language === 'hi' ? 'आधिकारिक दस्तावेज़ में उल्लेख नहीं' : 'Unverified / Not Found in Guidelines'}
+                            {language === 'hi' ? 'आधिकारिक पुष्टि उपलब्ध नहीं' : 'Could Not Verify in Official Documents'}
                           </span>
                           <span>
                             {language === 'hi'
                               ? 'योजना सहायक मनगढ़ंत उत्तर नहीं बनाता। यदि जानकारी आधिकारिक सरकारी दस्तावेज़ में उपलब्ध नहीं है, तो हम इसकी पुष्टि नहीं करते।'
-                              : 'Yojana Sahayak strictly adheres to anti-hallucination standards. If information is absent from official gazettes, we state it transparently.'}
+                              : "I couldn't verify this information from the available official sources. Yojana Sahayak avoids hallucinations."}
                           </span>
                         </div>
                       </div>
@@ -506,32 +506,46 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                 )}
               </div>
 
-              {/* User Avatar */}
               {isUser && (
-                <div className="w-9 h-9 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
-                  <User className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-xl bg-slate-800 text-white flex items-center justify-center shrink-0 shadow-md mt-1 border border-white/10">
+                  <User className="w-4 h-4" />
                 </div>
               )}
             </div>
           );
         })}
 
-        {/* Loading Indicator */}
+        {/* Loading State matching specification */}
         {loading && (
           <div className="flex gap-3 justify-start items-center">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-700 to-indigo-900 text-white flex items-center justify-center shrink-0 animate-pulse">
-              <Sparkles className="w-5 h-5 text-amber-300" />
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-emerald-500 text-white flex items-center justify-center shrink-0 animate-pulse border border-white/20">
+              <Sparkles className="w-4 h-4 text-amber-300" />
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-xs px-4 py-3 shadow-2xs flex items-center gap-3">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl rounded-tl-xs px-4 py-3 shadow-xl flex items-center gap-3 backdrop-blur-md">
               <div className="flex space-x-1">
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 rounded-full bg-blue-600 animate-bounce"></div>
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce [animation-delay:-0.3s]"></div>
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce [animation-delay:-0.15s]"></div>
+                <div className="w-2 h-2 rounded-full bg-blue-400 animate-bounce"></div>
               </div>
-              <span className="text-xs font-medium text-slate-500">
-                {loadingStage || (language === 'hi' ? 'उत्तर तैयार किया जा रहा है...' : 'Synthesizing verified response...')}
+              <span className="text-xs font-semibold text-slate-300">
+                {language === 'hi'
+                  ? 'योजना सहायक संबंधित जानकारी की जांच कर रहा है...'
+                  : 'Yojana Sahayak is checking the relevant information...'}
               </span>
             </div>
+          </div>
+        )}
+
+        {/* Retry Button if last query failed */}
+        {lastFailedQuery && !loading && (
+          <div className="flex justify-center pt-2">
+            <button
+              onClick={() => handleSendMessage(lastFailedQuery)}
+              className="px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs font-bold flex items-center gap-2 transition-all"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>{language === 'hi' ? 'पुनः प्रयास करें (Retry)' : 'Retry Request'}</span>
+            </button>
           </div>
         )}
 
@@ -539,24 +553,24 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
       </div>
 
       {/* Suggested Follow-ups Bar */}
-      <div className="pt-2 pb-1 shrink-0 flex items-center gap-1.5 overflow-x-auto text-xs text-slate-500">
-        <span className="font-medium shrink-0 text-slate-400">
+      <div className="pt-2 pb-1 shrink-0 flex items-center gap-2 overflow-x-auto text-xs text-slate-400">
+        <span className="font-semibold text-slate-500 shrink-0">
           {language === 'hi' ? 'सुझाव:' : 'Suggestions:'}
         </span>
-        {quickFollowUps.map((prompt, i) => (
+        {quickPrompts.map((p, i) => (
           <button
             key={i}
-            onClick={() => handleSendMessage(prompt)}
+            onClick={() => handleSendMessage(p)}
             disabled={loading}
-            className="shrink-0 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-full text-xs font-medium transition-colors"
+            className="shrink-0 bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white px-3 py-1 rounded-xl text-xs font-medium border border-white/[0.06] transition-colors"
           >
-            {prompt}
+            {p}
           </button>
         ))}
       </div>
 
       {/* Chat Input Bar */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-md shrink-0">
+      <div className="bg-[#06080e]/90 rounded-2xl border border-white/[0.12] p-2 shadow-2xl backdrop-blur-xl shrink-0">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -564,21 +578,21 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
           }}
           className="flex items-center gap-2"
         >
-          {/* Voice input button */}
+          {/* Voice Input Button */}
           <button
             type="button"
             onClick={toggleSpeechRecognition}
             className={`p-2.5 rounded-xl transition-all ${
               isListening
-                ? 'bg-red-600 text-white animate-pulse'
-                : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                ? 'bg-rose-600 text-white animate-pulse'
+                : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
             }`}
             title={isListening ? 'Listening...' : 'Voice Input (Speech-to-Text)'}
           >
-            {isListening ? <Mic className="w-5 h-5 text-white" /> : <Mic className="w-5 h-5" />}
+            <Mic className="w-5 h-5" />
           </button>
 
-          {/* Text input */}
+          {/* Input field */}
           <input
             type="text"
             value={input}
@@ -589,28 +603,28 @@ export const ChatAssistantView: React.FC<ChatAssistantViewProps> = ({
                 ? 'सरकारी योजना के बारे में पूछें (हिन्दी, English या Hinglish में)...'
                 : 'Ask about any scheme in English, Hindi, or Hinglish...'
             }
-            className="flex-1 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+            className="flex-1 px-3 py-2 text-sm text-white placeholder:text-slate-500 bg-transparent focus:outline-none"
           />
 
           {/* Send Button */}
           <button
             type="submit"
             disabled={loading || !input.trim()}
-            className="bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition-colors shadow-xs"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 disabled:opacity-40 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
           >
             <span>{language === 'hi' ? 'भेजें' : 'Send'}</span>
             <Send className="w-3.5 h-3.5" />
           </button>
         </form>
 
-        <div className="mt-1 px-2 flex items-center justify-between text-[10px] text-slate-400">
+        <div className="mt-1 px-2 flex items-center justify-between text-[10px] text-slate-500">
           <span>
             {language === 'hi' 
               ? 'प्रत्येक उत्तर केवल आधिकारिक सरकारी दस्तावेजों पर आधारित है।' 
-              : 'Every response is grounded in official government gazettes.'}
+              : 'Directly grounded in official government guidelines. Never hallucinates.'}
           </span>
-          <span className="hidden sm:inline font-medium">
-            AI Assistant + RAG
+          <span className="hidden sm:inline font-mono text-[9px] text-blue-400/80">
+            /api/chat • Vercel Ready
           </span>
         </div>
       </div>
